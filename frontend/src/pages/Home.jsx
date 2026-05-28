@@ -1,4 +1,6 @@
 import { useState, useRef } from "react";
+import axios from "axios";
+import toast from "react-hot-toast";
 
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
@@ -11,6 +13,7 @@ function Home() {
   const [transcription, setTranscription] = useState("");
   const [liveText, setLiveText] = useState("");
   const [recording, setRecording] = useState(false);
+  const [loading, setLoading] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
@@ -19,17 +22,77 @@ function Home() {
     setSelectedFile(e.target.files[0]);
   };
 
+  // Upload Audio To Backend
+  const uploadAudio = async () => {
+    if (!selectedFile) {
+      toast.error("Please select audio file");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const formData = new FormData();
+      formData.append(
+        "audio",
+        selectedFile
+      );
+
+      const response = await axios.post(
+        "http://localhost:5000/upload",
+        formData
+      );
+
+      setTranscription(
+        response.data.transcription
+      );
+
+      toast.success(
+        "Transcription generated"
+      );
+
+    } catch (error) {
+      console.log(error);
+      toast.error(
+        "Transcription failed"
+      );
+
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Recording
   const startRecording = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({
+    const stream =
+      await navigator.mediaDevices.getUserMedia({
         audio: true,
       });
 
-    const mediaRecorder = new MediaRecorder(stream);
-    mediaRecorderRef.current = mediaRecorder;
+    const mediaRecorder =
+      new MediaRecorder(stream);
+    mediaRecorderRef.current =
+      mediaRecorder;
     audioChunksRef.current = [];
-    mediaRecorder.ondataavailable = (event) => {
-      audioChunksRef.current.push(event.data);
+    mediaRecorder.ondataavailable =
+      (event) => {
+        audioChunksRef.current.push(
+          event.data
+        );
+      };
+
+    mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(
+        audioChunksRef.current,{
+          type: "audio/wav",
+        }
+      );
+
+      const audioFile = new File(
+        [audioBlob],
+        "recording.wav"
+      );
+
+      setSelectedFile(audioFile);
     };
 
     mediaRecorder.start();
@@ -43,15 +106,17 @@ function Home() {
 
   // Live Speech Recognition
   const startLiveTranscription = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition =
+      window.SpeechRecognition ||
+      window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = "en-US";
     recognition.onresult = (event) => {
       let transcript = "";
-      for(let i = event.resultIndex; i<event.results.length; i++){
-        transcript += event.results[i][0].transcript;
+      for (let i = event.resultIndex;i < event.results.length;i++){
+        transcript +=event.results[i][0].transcript;
       }
       setLiveText(transcript);
     };
@@ -60,23 +125,44 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-zinc-950">
-      <Navbar/>
+      <Navbar />
       <div className="max-w-6xl mx-auto px-6">
-        <Hero/>
+        <Hero />
         <UploadCard
           handleFileChange={handleFileChange}
           startRecording={startRecording}
           stopRecording={stopRecording}
           recording={recording}
         />
-        <div className="mt-6">
+        {selectedFile && (
+          <p className="text-gray-400 mt-4 text-center">
+            Selected File:
+            {" "}
+            {selectedFile.name}
+          </p>
+        )}
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={uploadAudio}
+            disabled={loading}
+            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-2xl hover:scale-105 transition-all disabled:opacity-50"
+          >
+            {loading
+              ? "Generating..."
+              : "Generate Transcription"}
+          </button>
+        </div>
+        <div className="mt-6 flex justify-center">
           <button
             onClick={startLiveTranscription}
             className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-2xl hover:scale-105 transition-all">
             Start Live Speech
           </button>
         </div>
-        <LiveTranscript liveText={liveText} />
+
+        <LiveTranscript
+          liveText={liveText}
+        />
         <TranscriptBox
           transcription={transcription}
         />
