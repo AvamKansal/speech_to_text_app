@@ -51,10 +51,39 @@ function Home() {
   }, []);
 
   // File Upload
-  const handleFileChange = (e) => {
+const handleFileChange = (e) => {
 
-    setSelectedFile(e.target.files[0]);
-  };
+  const file = e.target.files[0];
+
+  if (!file) return;
+  const maxSize = 10 * 1024 * 1024;
+
+if (file.size > maxSize) {
+
+  toast.error(
+    "File size must be less than 10MB"
+  );
+
+  return;
+}
+
+  if (
+    !file.type.startsWith("audio/")
+  ) {
+
+    toast.error(
+      "Please upload audio file only"
+    );
+
+    return;
+  }
+
+  setSelectedFile(file);
+
+  toast.success(
+    "Audio selected successfully"
+  );
+};
 
   // Upload Audio
   const uploadAudio = async () => {
@@ -96,9 +125,10 @@ function Home() {
 
       console.log(error);
 
-      toast.error(
-        "Transcription failed"
-      );
+toast.error(
+  error.response?.data?.error ||
+  "Something went wrong"
+);
 
     } finally {
 
@@ -147,25 +177,36 @@ function Home() {
   };
 
   // Live Speech Recognition
-  const startLiveTranscription = () => {
-    const SpeechRecognition =
-      window.SpeechRecognition ||
-      window.webkitSpeechRecognition;
-    const recognition =
-      new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "en-US";
-    recognition.onresult = (event) => {
-      let transcript = "";
-      for (let i = event.resultIndex;i < event.results.length;i++) {
-        transcript +=
-          event.results[i][0].transcript;
-      }
-      setLiveText(transcript);
-    };
-    recognition.start();
+const startLiveTranscription = () => {
+
+  // Browser support validation
+  if (
+    !window.SpeechRecognition &&
+    !window.webkitSpeechRecognition
+  ) {
+
+    toast.error(
+      "Speech Recognition not supported in this browser"
+    );
+
+    return;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  const recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = "en-US";
+  recognition.onresult = (event) => {
+    let transcript = "";
+    for (let i = event.resultIndex;i < event.results.length;i++) {
+      transcript +=event.results[i][0].transcript;
+    }
+    setLiveText(transcript);
   };
+  recognition.start();
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-black to-zinc-950">
@@ -188,10 +229,9 @@ function Home() {
           <button
             onClick={uploadAudio}
             disabled={loading}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-2xl hover:scale-105 transition-all disabled:opacity-50"
-          >
+            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
             {loading
-              ? "Generating..."
+              ? "Generating AI Transcript..."
               : "Generate Transcription"}
           </button>
         </div>
