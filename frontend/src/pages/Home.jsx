@@ -168,7 +168,7 @@ function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950">
+    <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-black to-zinc-950">
       <Navbar />
       <div className="max-w-6xl mx-auto px-6">
         <Hero />

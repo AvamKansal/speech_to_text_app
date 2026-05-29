@@ -1,14 +1,23 @@
-function LiveTranscript({ liveText }) {
+function LiveTranscript({
+  liveText,
+}) {
 
   return (
-    <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-3xl p-8 mt-8">
-      <h2 className="text-2xl font-bold text-white mb-4">
-        Live Speech Recognition
+
+    <div className="mt-10 bg-zinc-900/60 backdrop-blur-xl border border-zinc-800 rounded-3xl p-8 shadow-2xl">
+
+      <h2 className="text-3xl font-bold text-white mb-6">
+
+        Live Speech
+
       </h2>
-      <div className="bg-zinc-900 rounded-2xl p-6 min-h-[180px] text-gray-300 leading-8">
-        {liveText ||
-          "Live speech text will appear here..."}
-      </div>
+
+      <p className="text-gray-300 leading-8 whitespace-pre-wrap">
+
+        {liveText || "Live speech transcription will appear here..."}
+
+      </p>
+
     </div>
   );
 }
