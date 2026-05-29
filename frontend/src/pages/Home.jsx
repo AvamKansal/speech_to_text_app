@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 
@@ -7,31 +7,71 @@ import Hero from "../components/Hero";
 import UploadCard from "../components/UploadCard";
 import TranscriptBox from "../components/TranscriptBox";
 import LiveTranscript from "../components/LiveTranscript";
+import History from "../components/History";
 
 function Home() {
+
   const [selectedFile, setSelectedFile] = useState(null);
+
   const [transcription, setTranscription] = useState("");
+
+  const [history, setHistory] = useState([]);
+
   const [liveText, setLiveText] = useState("");
+
   const [recording, setRecording] = useState(false);
+
   const [loading, setLoading] = useState(false);
+
   const mediaRecorderRef = useRef(null);
+
   const audioChunksRef = useRef([]);
+
+  // Fetch History
+  const fetchHistory = async () => {
+
+    try {
+
+      const response = await axios.get(
+        "http://localhost:5000/upload/history"
+      );
+
+      setHistory(response.data);
+
+    } catch (error) {
+
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+
+    fetchHistory();
+
+  }, []);
 
   // File Upload
   const handleFileChange = (e) => {
+
     setSelectedFile(e.target.files[0]);
   };
 
-  // Upload Audio To Backend
+  // Upload Audio
   const uploadAudio = async () => {
+
     if (!selectedFile) {
+
       toast.error("Please select audio file");
+
       return;
     }
 
     try {
+
       setLoading(true);
+
       const formData = new FormData();
+
       formData.append(
         "audio",
         selectedFile
@@ -46,23 +86,29 @@ function Home() {
         response.data.transcription
       );
 
+      fetchHistory();
+
       toast.success(
         "Transcription generated"
       );
 
     } catch (error) {
+
       console.log(error);
+
       toast.error(
         "Transcription failed"
       );
 
     } finally {
+
       setLoading(false);
     }
   };
 
   // Recording
   const startRecording = async () => {
+
     const stream =
       await navigator.mediaDevices.getUserMedia({
         audio: true,
@@ -81,20 +127,16 @@ function Home() {
       };
 
     mediaRecorder.onstop = () => {
-      const audioBlob = new Blob(
-        audioChunksRef.current,{
+      const audioBlob = new Blob(audioChunksRef.current,{
           type: "audio/wav",
         }
       );
-
       const audioFile = new File(
         [audioBlob],
         "recording.wav"
       );
-
       setSelectedFile(audioFile);
     };
-
     mediaRecorder.start();
     setRecording(true);
   };
@@ -109,14 +151,16 @@ function Home() {
     const SpeechRecognition =
       window.SpeechRecognition ||
       window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
+    const recognition =
+      new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = "en-US";
     recognition.onresult = (event) => {
       let transcript = "";
-      for (let i = event.resultIndex;i < event.results.length;i++){
-        transcript +=event.results[i][0].transcript;
+      for (let i = event.resultIndex;i < event.results.length;i++) {
+        transcript +=
+          event.results[i][0].transcript;
       }
       setLiveText(transcript);
     };
@@ -135,8 +179,7 @@ function Home() {
           recording={recording}
         />
         {selectedFile && (
-          <p className="text-gray-400 mt-4 text-center">
-            Selected File:
+          <p className="text-gray-400 mt-4 text-center">Selected File:
             {" "}
             {selectedFile.name}
           </p>
@@ -166,6 +209,7 @@ function Home() {
         <TranscriptBox
           transcription={transcription}
         />
+        <History history={history} />
       </div>
     </div>
   );
